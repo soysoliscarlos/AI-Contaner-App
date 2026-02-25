@@ -1,0 +1,37 @@
+# -----------------------------------------------------------------------------
+# Container Apps (despliegue separado). Requiere: (1) infra en terraform/, (2) imágenes en ACR.
+# Copia a terraform.tfvars y aplica desde terraform-container-apps/:
+#   terraform init && terraform plan -out=tfplan && terraform apply tfplan
+# name_prefix debe coincidir con el de terraform/terraform.tfvars.
+# -----------------------------------------------------------------------------
+
+name_prefix = "ai0trust"
+
+container_apps = [
+  {
+    name          = "chat"
+    revision_mode = "Single"
+    template = {
+      min_replicas = 0
+      max_replicas = 3
+      containers = [
+        { name = "main", image = "chat:v1", cpu = "0.5", memory = "1Gi", env = [] }
+      ]
+    }
+    ingress = { target_port = 8000, external_enabled = true, traffic_weight = { percentage = 100, latest_revision = true } }
+  },
+  {
+    name          = "doc"
+    revision_mode = "Single"
+    template = {
+      min_replicas = 0
+      max_replicas = 3
+      containers = [
+        { name = "main", image = "doc:v1", cpu = "0.5", memory = "1Gi", env = [] }
+      ]
+    }
+    ingress = { target_port = 8000, external_enabled = true, traffic_weight = { percentage = 100, latest_revision = true } }
+  }
+]
+
+container_app_secrets = {}
