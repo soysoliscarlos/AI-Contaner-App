@@ -1,0 +1,48 @@
+# -----------------------------------------------------------------------------
+# Terraform
+# -----------------------------------------------------------------------------
+.terraform/
+.terraform.lock.hcl
+*.tfplan
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+.terraform.tfstate.lock.info
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+tfplan
+
+# -----------------------------------------------------------------------------
+# OS and editor
+# -----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+.cursor/
+*.sublime-*
+
+# -----------------------------------------------------------------------------
+# Project
+# -----------------------------------------------------------------------------
+# Uncomment if you do not want to commit tfvars (may contain env-specific values)
+terraform/terraform.tfvars
+terraform-container-apps/terraform.tfvars
+terraform/*.auto.tfvars
+
+# -----------------------------------------------------------------------------
+# Python
+# -----------------------------------------------------------------------------
+.env
+.venv/
+venv/
+__pycache__/
