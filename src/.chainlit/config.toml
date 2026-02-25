@@ -1,0 +1,12 @@
+[project]
+public = true
+enable_telemetry = true
+user_env = []
+
+[UI]
+name = "Chatbot"
+default_expand_messages = false
+hide_cot = false
+
+[meta]
+generated_by = "1.0"
