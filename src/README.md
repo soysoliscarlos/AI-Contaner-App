@@ -63,6 +63,8 @@ Los scripts `.sh` están pensados para **WSL** o bash en Linux/macOS; los `.ps1`
 
 ## Build y push de imágenes (para Container Apps)
 
+Los scripts `01-build-docker-images.ps1` y `03-push-docker-image.ps1` comprueban el código de salida de cada comando (docker, az) y terminan con error si fallan, de modo que `deploy-all.ps1` se detenga y no continúe con los pasos siguientes.
+
 1. Ajustar variables: en **PowerShell** edita `00-variables.ps1`, en **WSL/bash** edita `00-variables.sh`. `prefix` y `acrName` deben coincidir con tu Terraform (p. ej. `ai0trust` y `ai0trustacr`).
 2. Construir imágenes:
    ```powershell
@@ -105,8 +107,8 @@ El despliegue se hace en **tres pasos**. Este `src/` es el **paso 2** (app: buil
    bash ./03-push-docker-image.sh
    ```
 
-4. **Paso 3 (en terraform/)**  
-   Desplegar las Container Apps con un segundo apply usando `terraform.container-apps.tfvars` (ver `terraform/README.md` o el README raíz). Tras eso, `terraform output container_app_fqdn` muestra las URLs de Chat y Doc. Las apps usan Managed Identity; no hace falta configurar API keys.
+4. **Paso 3 (terraform-container-apps/)**  
+   Desplegar las Container Apps desde el directorio **terraform-container-apps/** (desde la raíz: `.\deploy-terraform-container-apps.ps1`). Tras eso, `cd terraform-container-apps && terraform output container_app_fqdn` muestra las URLs de Chat y Doc. Las apps usan Managed Identity; no hace falta configurar API keys.
 
 ### Ejecutar contenedor en local (Chat o Doc)
 
@@ -122,8 +124,9 @@ bash ./02-run-docker-container.sh
 
 ## Relación con el resto del repo
 
-- **terraform/** (paso 1) crea la infra (OpenAI, ACR, Container App Environment, Managed Identity, etc.). (Paso 3) Con `terraform.container-apps.tfvars` despliega las Container App(s) que usan las imágenes construidas desde este **src/**.
-- **src/** (paso 2) proporciona el código de las dos apps (Chat y Documents QA) y los scripts para construir y subir las imágenes al ACR.
+- **terraform/** (paso 1) crea la infra (OpenAI, ACR, Container App Environment, Managed Identity, etc.).
+- **terraform-container-apps/** (paso 3) despliega las Container Apps que usan las imágenes construidas desde este **src/**.
+- **src/** (paso 2) proporciona el código de las dos apps (Chat y Documents QA) y los scripts para construir y subir las imágenes al ACR. El script `02-run-docker-container.ps1` es solo para pruebas en local y no forma parte de `deploy-all.ps1`.
 
 ## Outputs de Terraform (referencia)
 

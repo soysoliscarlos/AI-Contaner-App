@@ -1,6 +1,6 @@
 # Zero-Trust AI Infrastructure (Terraform)
 
-**El despliegue con Terraform es en dos partes:** (1) **infra** — solo infraestructura; (2) **container_apps** — Container Apps (chat, doc), tras tener la infra y las imágenes en el ACR.
+**Este directorio (`terraform/`) despliega solo la infraestructura.** Las Container Apps (chat, doc) se despliegan por separado desde el directorio **terraform-container-apps/** usando `.\deploy-terraform-container-apps.ps1` en la raíz del repo (tras tener la infra y las imágenes en el ACR).
 
 Infraestructura modular en Azure para IA: **Azure OpenAI** (gpt-4o, text-embedding-3-small), **Azure AI Search**, **Azure Container Registry (ACR)**, **Container Apps Environment**, con **Managed Identity** y **RBAC** (sin API keys). Opcionalmente: **Private DNS zones** y **Private Endpoints** para OpenAI y ACR (Zero-Trust). Alineado con el [sample de Azure container-apps-openai](https://github.com/Azure-Samples/container-apps-openai/tree/main/terraform/infra).
 
@@ -46,22 +46,16 @@ Cuando devuelva `Registered`, vuelve a ejecutar `terraform apply`.
 2. **Configurar variables** (opcional)  
    Copia `terraform.tfvars.example` a `terraform.tfvars` y ajusta `name_prefix` y `location` si lo deseas. Por defecto se usa `location = "EastUS"` y `name_prefix = "ai0trust"`.
 
-3. **Parte 1: Solo infra**  
+3. **Solo infra (este directorio)**  
    Con `container_apps = []` en `terraform.tfvars` (por defecto), este apply crea **solo la infraestructura** (OpenAI, ACR, Container App Environment, Managed Identity, etc.).
    ```bash
    terraform plan -var-file=terraform.tfvars -out=tfplan
    terraform apply tfplan
    ```
-   Desde la raíz del repo también puedes usar: `.\deploy-terraform-infra.ps1`
+   Desde la raíz del repo: `.\deploy-terraform-infra.ps1`. Si algún comando terraform falla, el script termina con ese código de salida (y `deploy-all.ps1` se detiene).
 
-4. **Parte 2: Container Apps** (después del build/push desde `src/`)  
-   Copia `terraform.container-apps.tfvars.example` a `terraform.container-apps.tfvars` y aplica con ambos archivos de variables:
-   ```bash
-   cp terraform.container-apps.tfvars.example terraform.container-apps.tfvars
-   terraform plan -var-file=terraform.tfvars -var-file=terraform.container-apps.tfvars -out=tfplan-apps
-   terraform apply tfplan-apps
-   ```
-   Desde la raíz del repo también puedes usar: `.\deploy-terraform-container-apps.ps1`
+4. **Container Apps (directorio aparte)**  
+   Las Container Apps se despliegan desde **terraform-container-apps/** (no desde este directorio). Tras el build/push desde `src/`, desde la raíz ejecuta: `.\deploy-terraform-container-apps.ps1`. Ver README raíz y `terraform-container-apps/`.
 
 ## Estructura
 
@@ -70,8 +64,7 @@ Cuando devuelva `Registered`, vuelve a ejecutar `terraform apply`.
 - **modules/container_registry** — Azure Container Registry (imágenes para Container Apps).
 - **modules/private_dns_zone** / **modules/private_endpoint** — Private DNS y endpoints (cuando `use_private_endpoints = true`).
 - **modules/workload_identity** — User Assigned Managed Identity + roles (Cognitive Services OpenAI User, Search Index Data Contributor, AcrPull).
-- **modules/container_apps** — Container Apps Environment (entorno).
-- **modules/container_app** — Módulo que despliega una o más Container App(s); se invoca desde el root cuando `container_apps` no está vacío.
+- **modules/container_apps** — Container Apps Environment (entorno). Las aplicaciones (chat, doc) se despliegan en **terraform-container-apps/** con su propio Terraform.
 
 ## Salidas importantes
 
@@ -87,8 +80,8 @@ Después del `apply`, usa estas salidas para configurar tu aplicación:
 | `workload_identity_id` | Resource ID de la identidad (para el bloque `identity` del Container App). |
 | `container_app_environment_id` | ID del entorno donde desplegar la app. |
 | `acr_login_server` | Servidor ACR (ej. `<name>.azurecr.io`) para la imagen del Container App. |
-| `container_app_fqdn` | FQDN de cada Container App desplegada (si definiste `container_apps`). |
-| `container_app_ids` | IDs de los recursos Container App (si definiste `container_apps`). |
+| `container_app_fqdn` | FQDN de cada Container App (se obtiene tras aplicar en `terraform-container-apps/`). |
+| `container_app_ids` | IDs de los recursos Container App (en `terraform-container-apps/`). |
 
 En la aplicación usa **DefaultAzureCredential** (o **ManagedIdentityCredential** con `AZURE_CLIENT_ID`); no configures API keys.
 
@@ -124,17 +117,9 @@ Este código despliega los mismos tipos de recursos que [container-apps-openai/t
 
 Variables relevantes: `use_private_endpoints` (default `false`; ponla a `true` para alinear con el sample con Private Link), `acr_sku`, `acr_admin_enabled`.
 
-### Container App(s) en un despliegue aparte
+### Container Apps en directorio aparte
 
-El [sample container-apps-openai/terraform/apps](https://github.com/Azure-Samples/container-apps-openai/tree/main/terraform/apps) usa una carpeta `apps/` aparte. En este proyecto: **(1)** el primer apply despliega solo la infra (`container_apps = []` en `terraform.tfvars`); **(2)** desde `src/` se construyen y suben las imágenes al ACR; **(3)** un segundo apply con `-var-file=terraform.container-apps.tfvars` despliega las Container App(s). Todo desde la raíz de `terraform/`, sin carpeta `apps/` separada.
-
-| Recurso / concepto | En este proyecto |
-|--------------------|------------------|
-| azurerm_container_app (una o más) | ✓ cuando `container_apps` no está vacío |
-| Inyección AZURE_CLIENT_ID, registry con identidad (AcrPull) | ✓ |
-| Ingress, env, secrets, probes | ✓ (módulo `modules/container_app`) |
-
-Las salidas **`container_app_fqdn`** y **`container_app_ids`** aparecen cuando hay al menos una app desplegada.
+El [sample container-apps-openai/terraform/apps](https://github.com/Azure-Samples/container-apps-openai/tree/main/terraform/apps) usa una carpeta `apps/` aparte. En este proyecto: **(1)** este directorio `terraform/` despliega solo la infra (`container_apps = []`); **(2)** desde `src/` se construyen y suben las imágenes al ACR; **(3)** el directorio **terraform-container-apps/** despliega las Container Apps con su propio `terraform apply` (script `.\deploy-terraform-container-apps.ps1` desde la raíz). Las salidas **`container_app_fqdn`** y **`container_app_ids`** se obtienen tras aplicar en `terraform-container-apps/`.
 
 ## Private Endpoints
 

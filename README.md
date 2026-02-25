@@ -26,6 +26,8 @@ Repositorio unificado: **infraestructura en Terraform** (Azure OpenAI, AI Search
 
 El despliegue con **Terraform es en dos directorios**: (1) **terraform/** — apply solo infraestructura; (2) **terraform-container-apps/** — apply solo Container Apps (requiere mismo `name_prefix` e imágenes en ACR). Entre ambos va el build y push del código desde `src/` al ACR.
 
+**¿Por qué dos despliegues?** Las Container Apps necesitan imágenes que ya existan en el ACR; esas imágenes se construyen y suben *después* de crear la infra. El [sample de Microsoft](https://github.com/Azure-Samples/container-apps-openai) separa explícitamente infra (Environment, ACR, OpenAI) de apps (ACA). Detalle completo: [docs/why-two-deployments.md](docs/why-two-deployments.md).
+
 ---
 
 ## Chat (Chainlit)
@@ -144,7 +146,7 @@ Ambas apps se desplegarán como **Azure Container Apps** tras desplegar la infra
 | `.chainlit/config.toml` | Configuración de Chainlit. |
 | `00-variables.sh` / `00-variables.ps1` | Variables (prefix, ACR, nombres, puerto). |
 | `01-build-docker-images.sh` / `.ps1` | Construye imágenes Docker Chat y Doc. |
-| `02-run-docker-container.sh` / `.ps1` | Ejecuta en local el contenedor Chat o Doc. |
+| `02-run-docker-container.sh` / `.ps1` | Ejecuta en local el contenedor Chat o Doc (no se usa en `deploy-all.ps1`; solo para pruebas manuales). |
 | `03-push-docker-image.sh` / `.ps1` | Login ACR y push de imágenes. |
 | `.env.example` | Ejemplo de variables de entorno (OpenAI, auth, Managed Identity). |
 
@@ -213,7 +215,7 @@ El despliegue se hace en **tres pasos separados**: primero la infra, luego el c�
 
 **Terraform en dos directorios (PowerShell):** `.\deploy-terraform-infra.ps1` (infra en `terraform/`) y `.\deploy-terraform-container-apps.ps1` (Container Apps en `terraform-container-apps/`; requiere infra desplegada e imágenes en ACR; `name_prefix` debe coincidir).
 
-**Los tres pasos de una vez:** `.\deploy-all.ps1` ejecuta: Terraform infra → build/push desde `src/` → Terraform Container Apps. Requiere `az login` y Terraform en el PATH.
+**Los tres pasos de una vez:** `.\deploy-all.ps1` ejecuta: Terraform infra → build/push desde `src/` → Terraform Container Apps. Requiere `az login` y Terraform en el PATH. **Si alguno de los scripts falla** (terraform, docker build, az acr login/push), el script se detiene de inmediato y no ejecuta los pasos siguientes; todos los scripts comprueban códigos de salida y propagan el error.
 
 **Eliminar todo:** `.\destroy-all.ps1` ejecuta primero `terraform destroy` en `terraform-container-apps/` y luego en `terraform/` (no pide confirmación).
 
@@ -298,4 +300,4 @@ En la aplicación usa **DefaultAzureCredential** (o **ManagedIdentityCredential*
 - [container-apps-openai (Azure Samples)](https://github.com/Azure-Samples/container-apps-openai) · [README del sample](https://github.com/Azure-Samples/container-apps-openai/blob/main/README.md)
 - [Terraform](https://developer.hashicorp.com/terraform/downloads) · [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
 
-Documentación detallada por carpeta: **terraform/README.md** y **src/README.md**.
+Documentación detallada por carpeta: **terraform/README.md** y **src/README.md**. Sobre el motivo de los dos despliegues Terraform: **[docs/why-two-deployments.md](docs/why-two-deployments.md)**.
