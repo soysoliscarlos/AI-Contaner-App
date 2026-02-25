@@ -1,0 +1,34 @@
+# -----------------------------------------------------------------------------
+# Example tfvars for Zero-Trust AI infrastructure.
+# Copy to terraform.tfvars and set location (and optionally name_prefix).
+# No API keys or secrets required.
+# -----------------------------------------------------------------------------
+
+name_prefix = "ai0trust"
+location    = "EastUS"
+
+# OpenAI: S0 SKU; deployments for gpt-4o and text-embedding-3-small.
+# Adjust model versions if your region has different availability.
+# openai_sku             = "S0"
+# openai_deployments     = []  # uses root default
+openai_public_network_access_enabled = true
+
+# Azure AI Search: basic or standard; RBAC-only (no API keys).
+search_sku                      = "standard"
+search_replica_count            = 1
+search_partition_count          = 1
+search_local_authentication_enabled = false
+
+# Network: defaults are fine for most cases.
+# virtual_network_cidr         = "10.0.0.0/16"
+# container_apps_subnet_cidr  = "10.0.0.0/23"
+# private_endpoints_subnet_cidr = "10.0.2.0/24"
+
+# Private endpoints (as in Azure sample): set to true for Zero-Trust with Private Link.
+# use_private_endpoints = false
+
+# Azure Container Registry (for container images).
+# acr_sku           = "Basic"
+# acr_admin_enabled = false
+
+# Container Apps: se despliegan en el directorio terraform-container-apps/ (despliegue separado).
